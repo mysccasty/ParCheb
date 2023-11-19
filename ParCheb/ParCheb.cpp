@@ -1,0 +1,232 @@
+﻿#include <omp.h>
+#include <iostream>
+#include <fstream>
+#include <chrono>
+#include <iomanip>
+#define _USE_MATH_DEFINES
+using namespace std;
+
+typedef struct MyChebStructCircly
+{
+    double lambda_max;
+    double lambda_min;
+    double* T_n;
+    int N;
+
+} MyChebStructCircly;
+typedef struct MyDiagMatrStruct
+{
+    int nx;
+    int ny;
+    double* a0;
+    double* a1;
+    double* a2;
+    double* a3;
+    double* a4;
+    double* f;
+} MyDiagMatrStruct;
+typedef struct MyVectorStruct
+{
+    int nx;
+    int ny;
+    double* u;
+} MyVectorStruct;
+#define PI 3.1415926535897932384626433832795
+
+void generateMatr(MyDiagMatrStruct& myMatr) {
+    int nx = myMatr.nx;
+    int ny = myMatr.ny;
+    double* a0 = myMatr.a0;
+    double* a1 = myMatr.a1;
+    double* a2 = myMatr.a2;
+    double* a3 = myMatr.a3;
+    double* a4 = myMatr.a4;
+    double* f = myMatr.f;
+    for (int i = 0; i < nx * ny; i++) {
+        a0[i] = 4;
+        if (i == 0 | i == nx - 1 | i == nx * (ny - 1) | i == nx * ny - 1) {
+            f[i] = 2;
+        }
+        else if ((i > 0 & i < nx - 1) | ((i + 1) % nx == 0) | (i % nx == 0) | (i > nx * (ny - 1) & i < nx * ny - 1)) {
+            f[i] = 1;
+        }
+        else {
+            f[i] = 0;
+        }
+    }
+    for (int i = 0; i < nx * ny - 1; i++) {
+        if (((i + 1) % nx == 0) & (i != 0)) {
+            a1[i] = 0;
+            a2[i] = 0;
+
+        }
+        else {
+            a1[i] = -1;
+            a2[i] = -1;
+        }
+    }
+    for (int i = 0; i < nx * (ny - 1); i++) {
+        a3[i] = -1;
+        a4[i] = -1;
+    }
+}
+double norm(double* vector, int len) {
+    int i;
+    double sum = 0;
+#pragma omp parallel for private(i) reduction(+:sum)
+    for (i = 0; i < len; i++) {
+        sum += vector[i] * vector[i];
+    }
+    return sqrt(sum);
+}
+
+
+void nevyazka(double*& a0, double*& a1, double*& a2, double*& a3, double*& a4, double*& f, double*& u, double*& R, int nx, int ny) {
+
+    int i;
+#pragma omp parallel for shared(a0, a1, a2, a3, a4, f, u, R) private(i)
+    for (i = 0; i < nx * ny; i++) {
+        if (i == 0) {
+            R[i] = f[i] - (a0[i] * u[i] + a1[i] * u[i + 1] + a3[i] * u[i + nx]);
+        }
+        else if (i < nx) {
+            R[i] = f[i] - (a2[i - 1] * u[i - 1] + a0[i] * u[i] + a1[i] * u[i + 1] + a3[i] * u[i + nx]);
+        }
+        else if (i == nx * ny - 1) {
+            R[i] = f[i] - (a4[i - nx] * u[i - nx] + a2[i - 1] * u[i - 1] + a0[i] * u[i]);
+        }
+        else if (i >= nx * (ny - 1)) {
+            R[i] = f[i] - (a4[i - nx] * u[i - nx] + a2[i - 1] * u[i - 1] + a0[i] * u[i] + a1[i] * u[i + 1]);
+        }
+        else {
+            R[i] = f[i] - (a4[i - nx] * u[i - nx] + a2[i - 1] * u[i - 1] + a0[i] * u[i] + a1[i] * u[i + 1] + a3[i] * u[i + nx]);
+        }
+    }
+}
+void coef(int* a, int* b, int fn, int ln) {
+
+    int j = 1;
+    for (int i = 1; i < fn + 1; i++) {
+        b[j] = a[i];
+        b[j + 1] = fn * 4 - a[i];
+        j = j + 2;
+    }
+    fn = fn * 2;
+    for (int i = 1; i < fn + 1; i++) {
+        a[i] = b[i];
+    }
+    if (fn == ln) {
+        return;
+    }
+    coef(a, b, fn, ln);
+}
+int* giveParam(int N) {
+    int* a = (int*)malloc((N + 1) * sizeof(int));
+    int* b = (int*)malloc((N + 1) * sizeof(int));
+    int firstN = 2;
+    a[1] = 1;
+    a[2] = 3;
+    coef(a, b, firstN, N);
+    return a;
+}
+
+
+void ConstrChebCircly(MyChebStructCircly* my_cheb) {
+    int n;
+
+    double* index = my_cheb->T_n;
+    int N = my_cheb->N;
+    double lmax = my_cheb->lambda_max;
+    double lmin = my_cheb->lambda_min;
+    int* Tn = giveParam(N);
+    for (n = 1; n <= N; n++) {
+
+        index[n] = 2.0 / (lmax + lmin - (lmax - lmin) * (cos((2 * (double)Tn[n] - 1) * (double)PI / (2 * (double)N))));
+    }
+    free(Tn);
+}
+void cheb(int nx, int ny, int N, ofstream& out) {
+    double epsilon = 1e-10;
+    out << "Nx = " << nx << endl;
+    out << "Ny = " << ny << endl;
+
+
+    double* T_n = (double*)malloc((N) * sizeof(double));
+
+
+    double tau_k, fNorm;
+    MyDiagMatrStruct Matrix;
+    MyVectorStruct Vector, Nevyazka;
+    MyChebStructCircly MyCheb;
+
+
+    MyCheb.N = N;
+    MyCheb.T_n = T_n;
+    double* a0 = (double*)malloc((nx * ny) * sizeof(double));
+
+    double* a1 = (double*)malloc((nx * ny - 1) * sizeof(double));
+    double* a2 = (double*)malloc((nx * ny - 1) * sizeof(double));
+    double* a3 = (double*)malloc((nx * (ny - 1)) * sizeof(double));
+    double* a4 = (double*)malloc((nx * (ny - 1)) * sizeof(double));
+    double* f = (double*)malloc((nx * ny) * sizeof(double));
+    double* r = (double*)malloc((nx * ny) * sizeof(double));
+    double* x = (double*)malloc((nx * ny) * sizeof(double));
+    for (int i = 0; i < nx * ny; i++) {
+        x[i] = 2;
+    }
+    Vector.nx = nx;
+    Vector.ny = ny;
+    Vector.u = x;
+
+    Nevyazka.nx = nx;
+    Nevyazka.ny = ny;
+    Nevyazka.u = r;
+
+    Matrix.nx = nx;
+    Matrix.ny = ny;
+    Matrix.a0 = a0;
+    Matrix.a1 = a1;
+    Matrix.a2 = a2;
+    Matrix.a3 = a3;
+    Matrix.a4 = a4;
+    Matrix.f = f;
+
+
+
+    generateMatr(Matrix);
+    MyCheb.lambda_max = 8.0 * sin(((double)nx + 1) * PI / (2 * ((double)nx + 1) + 2)) * sin(((double)nx + 1) * PI / (2 * ((double)nx + 1) + 2));
+    MyCheb.lambda_min = 8.0 * sin(PI / (2 * ((double)nx + 1) + 2)) * sin(PI / (2 * ((double)nx + 1) + 2));
+
+    auto start = std::chrono::high_resolution_clock::now();
+    fNorm = norm(Matrix.f, Matrix.nx*Matrix.ny);
+    ConstrChebCircly(&MyCheb);
+
+
+    for (int k = 1; k < N; k++) {
+        nevyazka(Matrix.a0, Matrix.a1, Matrix.a2, Matrix.a3, Matrix.a4, Matrix.f, Vector.u, Nevyazka.u, Matrix.nx, Matrix.ny);
+
+        if (norm(Nevyazka.u, Nevyazka.nx*Nevyazka.ny) < epsilon * fNorm) {
+            out << k << " iterations need to get " << epsilon << " error" << endl;
+            break;
+        }
+        for (int i = 0; i < nx * ny; i++) {
+            Vector.u[i] += MyCheb.T_n[k] * Nevyazka.u[i];
+        }
+
+
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> duration = end - start;
+    out << "Time: " << duration.count() << " ms" << endl;
+}
+int main() {
+    int nx = 7, N = 16 * 2048;
+    int ny = nx;
+
+    omp_set_dynamic(0);
+    omp_set_num_threads(12);
+    std::ofstream out;
+    out.open("result.txt");
+    cheb(nx, ny, N, out);
+      out.close();
+}

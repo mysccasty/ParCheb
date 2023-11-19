@@ -1,0 +1,10 @@
+Time: 86.9389 ms
+-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	
+-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	
+-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	
+-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	
+-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	
+-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	
+-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	
+-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	
+-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	-nan(ind)	
