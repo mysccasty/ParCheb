@@ -1,5 +1,4 @@
-Nx = 7
-Ny = 7
-80 iterations need to get 1e-10 error
-Time: 10.0964 ms
-1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	
+Nx = 63
+Ny = 63
+3777 iterations need to get 1e-10 error
+Time: 224.786 ms
