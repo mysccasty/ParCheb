@@ -14,23 +14,6 @@ typedef struct MyChebStructCircly
     int N;
 
 } MyChebStructCircly;
-typedef struct MyDiagMatrStruct
-{
-    int nx;
-    int ny;
-    double* a0;
-    double* a1;
-    double* a2;
-    double* a3;
-    double* a4;
-    double* f;
-} MyDiagMatrStruct;
-typedef struct MyVectorStruct
-{
-    int nx;
-    int ny;
-    double* u;
-} MyVectorStruct;
 #define PI 3.1415926535897932384626433832795
 
 void generateMatr(double*& a0, double*& a1, double*& a2, double*& a3, double*& a4, double*& f, int nx, int ny) {
@@ -145,8 +128,6 @@ void cheb(int nx, int ny, int N, ofstream& out) {
     out << "Ny = " << ny << endl;
     double* T_n = (double*)malloc((N) * sizeof(double));
     double tau_k, fNorm;
-    MyDiagMatrStruct Matrix;
-    MyVectorStruct Vector, Nevyazka;
     MyChebStructCircly MyCheb;
     MyCheb.N = N;
     MyCheb.T_n = T_n;
@@ -158,37 +139,23 @@ void cheb(int nx, int ny, int N, ofstream& out) {
     double* f = (double*)malloc((nx * ny) * sizeof(double));
     double* r = (double*)malloc((nx * ny) * sizeof(double));
     double* x = (double*)malloc((nx * ny) * sizeof(double));
-    Vector.nx = nx;
-    Vector.ny = ny;
-    Vector.u = x;
-    Nevyazka.nx = nx;
-    Nevyazka.ny = ny;
-    Nevyazka.u = r;
-    Matrix.nx = nx;
-    Matrix.ny = ny;
-    Matrix.a0 = a0;
-    Matrix.a1 = a1;
-    Matrix.a2 = a2;
-    Matrix.a3 = a3;
-    Matrix.a4 = a4;
-    Matrix.f = f;
     generateMatr(a0, a1, a2, a3, a4, f, nx, ny);
     MyCheb.lambda_max = 8.0 * sin(((double)nx + 1) * PI / (2 * ((double)nx + 1) + 2)) * sin(((double)nx + 1) * PI / (2 * ((double)nx + 1) + 2));
     MyCheb.lambda_min = 8.0 * sin(PI / (2 * ((double)nx + 1) + 2)) * sin(PI / (2 * ((double)nx + 1) + 2));
 
     auto start = std::chrono::high_resolution_clock::now();
-    fNorm = norm(Matrix.f, Matrix.nx*Matrix.ny);
+    fNorm = norm(f, nx*ny);
     ConstrChebCircly(&MyCheb);
 
     for (int iter = 1; iter < N; iter++) {
-        nevyazka(Matrix.a0, Matrix.a1, Matrix.a2, Matrix.a3, Matrix.a4, Matrix.f, Vector.u, Nevyazka.u, Matrix.nx, Matrix.ny);
+        nevyazka(a0, a1, a2, a3, a4, f, x, r, nx, ny);
 
-        if (norm(Nevyazka.u, Nevyazka.nx*Nevyazka.ny) < epsilon * fNorm) {
+        if (norm(r, nx*ny) < epsilon * fNorm) {
             out << iter << " iterations need to get " << epsilon << " error" << endl;
             break;
         }
         for (int i = 0; i < nx * ny; i++) {
-            Vector.u[i] += MyCheb.T_n[iter] * Nevyazka.u[i];
+            x[i] += MyCheb.T_n[iter] * r[i];
         }
 
 
@@ -204,7 +171,6 @@ void inverse(int nx, int ny, int N, ofstream& out) {
     double* T_n = (double*)malloc((N) * sizeof(double));
 
     double tau_k, fNorm;
-    MyVectorStruct Vector, Nevyazka;
     MyChebStructCircly MyCheb;
 
 
@@ -273,13 +239,13 @@ void inverse(int nx, int ny, int N, ofstream& out) {
     std::chrono::duration<double, std::milli> duration = end - start;
     out << "Time: " << duration.count() << " ms" << std::endl;
     for (int i = 0; i < nx * nx; i++) {
-        for (int j = 0; j < nx * ny; j++) {
+        /*for (int j = 0; j < nx * ny; j++) {
             out << std::fixed;
             out << std::setprecision(5);
             out << AInv[i][j];
             out << "\t";
         }
-        out << endl;
+        out << endl;*/
         free(AInv[i]);
     }
     free(AInv);
