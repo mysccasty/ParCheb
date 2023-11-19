@@ -1,4 +1,4 @@
-Nx = 63
-Ny = 63
-3777 iterations need to get 1e-10 error
-Time: 298.409 ms
+Nx = 3
+Ny = 3
+270 iterations need to get 1e-10 error
+Time: 16.9223 ms

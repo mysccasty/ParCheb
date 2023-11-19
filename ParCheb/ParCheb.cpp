@@ -121,31 +121,15 @@ void ConstrChebCircly(MyChebStructCircly* my_cheb) {
     free(Tn);
 }
 //Решение СЛАУ
-void cheb(int nx, int ny, int N, ofstream& out) {
+void cheb(int nx, int ny, int N, double* a0, double* a1, double* a2, double* a3, double* a4, double* x, double* r, double* f, double* T_n, ofstream& out) {
 
     double epsilon = 1e-10;
     out << "Nx = " << nx << endl;
     out << "Ny = " << ny << endl;
-    double* T_n = (double*)malloc((N) * sizeof(double));
-    double tau_k, fNorm;
-    MyChebStructCircly MyCheb;
-    MyCheb.N = N;
-    MyCheb.T_n = T_n;
-    double* a0 = (double*)malloc((nx * ny) * sizeof(double));
-    double* a1 = (double*)malloc((nx * ny - 1) * sizeof(double));
-    double* a2 = (double*)malloc((nx * ny - 1) * sizeof(double));
-    double* a3 = (double*)malloc((nx * (ny - 1)) * sizeof(double));
-    double* a4 = (double*)malloc((nx * (ny - 1)) * sizeof(double));
-    double* f = (double*)malloc((nx * ny) * sizeof(double));
-    double* r = (double*)malloc((nx * ny) * sizeof(double));
-    double* x = (double*)malloc((nx * ny) * sizeof(double));
-    generateMatr(a0, a1, a2, a3, a4, f, nx, ny);
-    MyCheb.lambda_max = 8.0 * sin(((double)nx + 1) * PI / (2 * ((double)nx + 1) + 2)) * sin(((double)nx + 1) * PI / (2 * ((double)nx + 1) + 2));
-    MyCheb.lambda_min = 8.0 * sin(PI / (2 * ((double)nx + 1) + 2)) * sin(PI / (2 * ((double)nx + 1) + 2));
+    double fNorm;
 
     auto start = std::chrono::high_resolution_clock::now();
     fNorm = norm(f, nx*ny);
-    ConstrChebCircly(&MyCheb);
 
     for (int iter = 1; iter < N; iter++) {
         nevyazka(a0, a1, a2, a3, a4, f, x, r, nx, ny);
@@ -155,7 +139,7 @@ void cheb(int nx, int ny, int N, ofstream& out) {
             break;
         }
         for (int i = 0; i < nx * ny; i++) {
-            x[i] += MyCheb.T_n[iter] * r[i];
+            x[i] += T_n[iter] * r[i];
         }
 
 
@@ -165,31 +149,9 @@ void cheb(int nx, int ny, int N, ofstream& out) {
     out << "Time: " << duration.count() << " ms" << endl;
 }
 //Вычисление обратной
-void inverse(int nx, int ny, int N, ofstream& out) {
+void inverse(int nx, int ny, int N, double* a0, double* a1, double* a2, double* a3, double* a4, double* x, double* r, double* f, double* T_n, ofstream& out) {
     out << "Nx = " << nx << endl;
     out << "Ny = " << ny << endl;
-    double* T_n = (double*)malloc((N) * sizeof(double));
-
-    double tau_k, fNorm;
-    MyChebStructCircly MyCheb;
-
-
-    MyCheb.N = N;
-    MyCheb.T_n = T_n;
-    double* a0 = (double*)malloc((nx * ny) * sizeof(double));
-    double* a1 = (double*)malloc((nx * ny - 1) * sizeof(double));
-    double* a2 = (double*)malloc((nx * ny - 1) * sizeof(double));
-    double* a3 = (double*)malloc((nx * (ny - 1)) * sizeof(double));
-    double* a4 = (double*)malloc((nx * (ny - 1)) * sizeof(double));
-    double* f = (double*)malloc((nx * ny) * sizeof(double));
-    double* x;
-    double* r;
-    generateMatr(a0, a1, a2, a3, a4, f, nx, ny);
-    MyCheb.lambda_max = 8.0 * sin(((double)nx + 1) * PI / (2 * ((double)nx + 1) + 2)) * sin(((double)nx + 1) * PI / (2 * ((double)nx + 1) + 2));
-    MyCheb.lambda_min = 8.0 * sin(PI / (2 * ((double)nx + 1) + 2)) * sin(PI / (2 * ((double)nx + 1) + 2));
-    ConstrChebCircly(&MyCheb);
-
-
 
     double epsilon = 1e-10;
     double** AInv = (double**)malloc((nx * ny) * sizeof(double*));
@@ -251,17 +213,38 @@ void inverse(int nx, int ny, int N, ofstream& out) {
     free(AInv);
 }
 int main() {
-    int nx = 63, N = 16 * 2048;
+    int nx = 3, N = 16 * 2048;
     int ny = nx;
+
+    double* T_n = (double*)malloc((N) * sizeof(double));
+
+    double fNorm;
+    MyChebStructCircly MyCheb;
+
+
+    MyCheb.N = N;
+    MyCheb.T_n = T_n;
+    double* a0 = (double*)malloc((nx * ny) * sizeof(double));
+    double* a1 = (double*)malloc((nx * ny - 1) * sizeof(double));
+    double* a2 = (double*)malloc((nx * ny - 1) * sizeof(double));
+    double* a3 = (double*)malloc((nx * (ny - 1)) * sizeof(double));
+    double* a4 = (double*)malloc((nx * (ny - 1)) * sizeof(double));
+    double* f = (double*)malloc((nx * ny) * sizeof(double));
+    double* x = (double*)malloc((nx * ny) * sizeof(double));;
+    double* r = (double*)malloc((nx * ny) * sizeof(double));;
+    generateMatr(a0, a1, a2, a3, a4, f, nx, ny);
+    MyCheb.lambda_max = 8.0 * sin(((double)nx + 1) * PI / (2 * ((double)nx + 1) + 2)) * sin(((double)nx + 1) * PI / (2 * ((double)nx + 1) + 2));
+    MyCheb.lambda_min = 8.0 * sin(PI / (2 * ((double)nx + 1) + 2)) * sin(PI / (2 * ((double)nx + 1) + 2));
+    ConstrChebCircly(&MyCheb);
 
     omp_set_dynamic(0);
     omp_set_num_threads(12);
     std::ofstream result;
     result.open("result.txt");
-    cheb(nx, ny, N, result);
+    cheb(nx, ny, N, a0, a1, a2, a3, a4, x, r, f, T_n, result);
     result.close();
     std::ofstream invMatr;
     invMatr.open("InverseMatrix.txt");
-    inverse(nx, ny, N, invMatr);
+    inverse(nx, ny, N, a0, a1, a2, a3, a4, x, r, f, T_n, invMatr);
     invMatr.close();
 }
