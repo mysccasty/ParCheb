@@ -143,7 +143,7 @@
     <ClCompile Include="ParCheb.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Header.h" />
+    <ClInclude Include="ParCheb.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="InverseMatrix.txt" />
